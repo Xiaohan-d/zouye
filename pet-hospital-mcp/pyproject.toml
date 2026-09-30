@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pet-hospital-mcp"
+version = "0.1.0"
+description = "宠物医院 MCP Server（MVP：仅 list_pets）· Streamable HTTP · MCP 2026-07-28 规范"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=2.0.0",
+    "httpx2",
+]
+
+[project.scripts]
+pet-hospital-mcp = "server:main"
+
+[tool.setuptools]
+py-modules = ["server", "upstream", "client_test"]
+packages = ["tools"]
