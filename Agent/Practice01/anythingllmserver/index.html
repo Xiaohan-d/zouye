@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnythingLLM 上传工具</title>
+<style>
+:root{--primary:#6E3AFF;--primary-dark:#5429e8;--bg:#f3f4fb;--card:#ffffff;--text:#1f2430;--muted:#7a8194;--ok:#16a34a;--err:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,'PingFang SC',sans-serif;background:linear-gradient(160deg,#eef0ff 0%,var(--bg) 40%,#ebe9ff 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:100%;max-width:560px;background:var(--card);border-radius:16px;box-shadow:0 12px 40px rgba(80,60,180,.18);padding:32px}
+h1{margin:0 0 4px;font-size:22px;display:flex;align-items:center;gap:10px}
+h1 .dot{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,#6E3AFF,#22d3ee);display:inline-block}
+.sub{margin:0 0 24px;color:var(--muted);font-size:13px}
+label{display:block;font-size:13px;font-weight:600;color:var(--text);margin:16px 0 6px}
+input[type=text]{width:100%;padding:10px 12px;border:1px solid #dfe3ee;border-radius:10px;font-size:14px;background:#fafbff;transition:.15s}
+input[type=text]:focus{outline:2px solid var(--primary);outline-offset:1px;border-color:transparent}
+.file-box{position:relative;border:2px dashed #cfd4e6;border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:.15s;background:#fafbff}
+.file-box:hover{border-color:var(--primary);background:#f5f3ff}
+.file-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.file-box .fname{color:var(--primary);font-weight:600;font-size:14px}
+.file-box .fhint{color:var(--muted);font-size:12px;margin-top:4px}
+.btn{width:100%;margin-top:24px;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(110,58,255,.35)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#result{margin-top:20px;border-radius:12px;padding:16px;font-size:13px;line-height:1.6;display:none}
+#result.ok{display:block;background:#effaf3;border:1px solid #c9ecd6;color:#14532d}
+#result.err{display:block;background:#fef1f0;border:1px solid #f6cdca;color:#7f1d1d}
+#result .row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+#result .k{color:var(--muted)}
+#result .v{font-weight:600;text-align:right;word-break:break-all}
+#raw{margin-top:10px;font-size:12px;color:var(--muted);white-space:pre-wrap;max-height:180px;overflow:auto;border-top:1px solid #e6eaf2;padding-top:8px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1><span class="dot"></span>AnythingLLM 文档上传</h1>
+  <p class="sub">上传文档并向量化嵌入到第一个工作区</p>
+
+  <label for="server">服务器地址</label>
+  <input type="text" id="server" value="http://localhost:3001">
+
+  <label for="key">API Key</label>
+  <input type="text" id="key" value="8M7TW95-KEKMV6W-PJY4ZSF-Z0DPPJH">
+
+  <label>选择文件</label>
+  <div class="file-box">
+    <input type="file" id="file">
+    <div class="fname" id="fname">点击选择文件</div>
+    <div class="fhint" id="fhint">支持文本 / PDF 等格式</div>
+  </div>
+
+  <button class="btn" id="btn" onclick="upload()">上传并嵌入</button>
+  <div id="result"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const btn = $("btn");
+$("file").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (f) { $("fname").textContent = f.name; $("fhint").textContent = (f.size/1024).toFixed(1) + " KB"; }
+});
+
+function show(ok, html) {
+  const r = $("result");
+  r.className = ok ? "ok" : "err";
+  r.innerHTML = html;
+}
+
+async function upload() {
+  const server = $("server").value.replace(/\/$/, "");
+  const key = $("key").value;
+  const file = $("file").files[0];
+  if (!file) { show(false, "请先选择文件"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 正在处理...';
+  try {
+    show(false, "正在获取工作区列表...");
+    const wsRes = await fetch(server + "/api/v1/workspaces", {
+      headers: { Authorization: "Bearer " + key }
+    });
+    const wsData = await wsRes.json();
+    if (wsRes.status !== 200)
+      throw new Error("获取工作区失败 (HTTP " + wsRes.status + "): " + JSON.stringify(wsData));
+    if (!wsData.workspaces || !wsData.workspaces.length)
+      throw new Error("没有可用的工作区");
+
+    const ws = wsData.workspaces[0];
+    show(false, '正在上传并嵌入到工作区 "' + ws.name + '"...');
+
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("addToWorkspaces", ws.slug);
+
+    const upRes = await fetch(server + "/api/v1/document/upload", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + key },
+      body: fd
+    });
+    const upData = await upRes.json();
+    if (upRes.status !== 200 || !upData.success)
+      throw new Error("上传失败 (HTTP " + upRes.status + "): " + JSON.stringify(upData));
+
+    const docs = upData.documents && upData.documents.length
+      ? upData.documents.map(d => d.title || d.name).join(", ")
+      : "无";
+    const raw = JSON.stringify(upData, null, 2)
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    show(true,
+      '<div class="row"><span class="k">工作区</span><span class="v">' +
+        escapeHtml(ws.name) + '</span></div>' +
+      '<div class="row"><span class="k">上传结果</span><span class="v">成功 ✓</span></div>' +
+      '<div class="row"><span class="k">已嵌入文档</span><span class="v">' +
+        escapeHtml(docs) + '</span></div>' +
+      '<div id="raw">' + raw + '</div>');
+  } catch (e) {
+    show(false, escapeHtml(e.message));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "上传并嵌入";
+  }
+}
+
+function escapeHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+</script>
+</body>
+</html>
