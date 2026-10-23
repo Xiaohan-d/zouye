@@ -1,0 +1,156 @@
+Screen {
+    layout: vertical;
+    background: $background;
+}
+
+#banner {
+    height: 3;
+    padding: 0 1;
+    background: $boost;
+    border-bottom: solid $primary;
+}
+
+#chat {
+    height: 1fr;
+    margin: 1;
+    padding: 1;
+    border: round $primary;
+    background: $surface;
+}
+
+MessageBlock {
+    height: auto;
+    margin-bottom: 1;
+}
+
+MessageBlock .role {
+    height: 1;
+    text-style: bold;
+}
+
+MessageBlock .content {
+    height: auto;
+    padding-left: 1;
+}
+
+MessageBlock.message-user .role {
+    color: $accent;
+}
+
+MessageBlock.message-assistant .role {
+    color: $success;
+}
+
+MessageBlock.message-error .role {
+    color: $error;
+}
+
+MessageBlock.message-system .role {
+    color: $text-muted;
+}
+
+ToolCallBlock {
+    height: auto;
+    margin-bottom: 1;
+    border: round $panel;
+    background: $boost;
+}
+
+ToolCallBlock.success {
+    border: round $success;
+}
+
+ToolCallBlock.failure {
+    border: round $error;
+}
+
+ToolCallBlock .tool-details {
+    height: auto;
+    padding: 1;
+}
+
+ToolCallBlock .tool-detail {
+    height: auto;
+}
+
+#streaming {
+    display: none;
+    height: auto;
+    max-height: 12;
+    margin: 0 1;
+    padding: 0 1;
+    border: round $accent;
+    background: $surface;
+}
+
+#streaming.visible {
+    display: block;
+}
+
+#quick-actions {
+    height: 3;
+    margin: 0 1;
+    align: left middle;
+}
+
+#quick-actions Button {
+    margin-right: 1;
+}
+
+#composer {
+    height: 3;
+    margin: 0 1 1 1;
+}
+
+#prompt {
+    width: 1fr;
+}
+
+#status {
+    width: 26;
+    content-align: center middle;
+    color: $text-muted;
+}
+
+FilePreviewScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#preview-dialog {
+    width: 92%;
+    height: 86%;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#preview-title {
+    height: 1;
+    text-style: bold;
+    color: $accent;
+}
+
+#preview-subtitle {
+    height: 1;
+    margin-bottom: 1;
+    color: $text-muted;
+}
+
+#preview-text {
+    height: 1fr;
+    border: round $panel;
+}
+
+#preview-actions {
+    height: 3;
+    align: right middle;
+}
+
+#preview-close {
+    width: 12;
+}
+
+Footer {
+    background: $panel;
+}
