@@ -1,0 +1,72 @@
+%% Python Chat Agent 本地文件操作版：代码架构图
+%% 主程序：chat-stream-tool-fileOps.py
+flowchart TB
+    subgraph ENTRY [入口与配置]
+        CFG["config.ini<br/>base_url / model_name / api_key"]
+        MAIN["主程序<br/>无限循环输入 + messages 上下文"]
+    end
+
+    subgraph LLM [大模型交互]
+        SDK["OpenAI SDK<br/>client.chat.completions.create"]
+        MODEL["本地 LLM<br/>tool_choice=auto"]
+    end
+
+    subgraph LOOP [对话与工具调用循环]
+        ASK["携带 tools 请求模型"]
+        CHECK{"模型是否返回<br/>tool_calls?"}
+        STREAM["流式生成最终回答"]
+        PRINT["逐字打印并写入 messages"]
+    end
+
+    subgraph DISPATCH [工具分发]
+        EXEC["executeTool<br/>json.loads + inspect 过滤参数"]
+        REG["tool_functions 注册表"]
+    end
+
+    subgraph BASIC [基础工具 2 个]
+        B1["getDate<br/>获取日期时间"]
+        B2["isLeapYear<br/>判断闰年"]
+    end
+
+    subgraph FILEOPS [本地文件操作工具 10 个]
+        F1["getCurrentWorkingDirectory<br/>获取当前工作目录"]
+        F2["listDirectory<br/>列出文件和子目录"]
+        F3["getFileType<br/>获取文件类型"]
+        F4["readTextFile<br/>读取纯文本"]
+        F5["createFile<br/>创建文件并自动建目录"]
+        F6["editTextFile<br/>覆盖 / 追加 / 前插"]
+        F7["createDirectory<br/>创建多级目录"]
+        F8["deleteDirectory<br/>递归删除目录"]
+        F9["deleteFile<br/>删除文件"]
+        F10["renameFileOrDirectory<br/>重命名或移动"]
+    end
+
+    subgraph HELP [内部辅助能力]
+        H1["_resolve_path<br/>相对路径转绝对路径"]
+        H2["_detect_text_encoding<br/>UTF-8 / GBK / 二进制检测"]
+        H3["_format_size<br/>文件大小格式化"]
+        H4["_is_root<br/>根目录保护"]
+    end
+
+    subgraph ENV [本地环境]
+        FS["本地文件系统"]
+        OS["系统日期时间 / cmd 命令"]
+    end
+
+    CFG --> MAIN
+    MAIN --> SDK
+    SDK --> ASK
+    ASK --> MODEL
+    MODEL --> CHECK
+    CHECK -->|"否：无工具调用"| STREAM
+    STREAM --> PRINT
+    PRINT --> MAIN
+    CHECK -->|"是：存在 tool_calls"| EXEC
+    EXEC --> REG
+    REG --> BASIC
+    REG --> FILEOPS
+    FILEOPS --> HELP
+    BASIC --> OS
+    FILEOPS --> FS
+    MODEL --> SDK
+    SDK --> MAIN
